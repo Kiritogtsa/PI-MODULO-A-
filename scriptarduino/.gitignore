@@ -1,4 +1,0 @@
-pi
-
-lista a porta usb que o arduino está conectado:
-python -m serial.tools.list_ports
