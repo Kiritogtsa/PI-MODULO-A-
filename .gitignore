@@ -1,4 +1,4 @@
-pi
+python_teste
+__pycache__
+.mypy_cache
 
-lista a porta usb que o arduino está conectado:
-python -m serial.tools.list_ports
