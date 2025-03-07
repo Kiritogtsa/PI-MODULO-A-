@@ -1,0 +1,32 @@
+#define sim 2
+#define nao 3
+#define nao_sei 4
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(sim, INPUT);
+  pinMode(nao, INPUT);
+  pinMode(nao_sei, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  int botao_sim = digitalRead(sim);
+  int botao_nao = digitalRead(nao);
+  int botao_nao_sei = digitalRead(nao_sei);
+  if (botao_sim == HIGH){
+    Serial.println(1);
+    delay(1000);
+  }
+
+  if (botao_nao == HIGH){
+    Serial.println(0);
+    delay(1000);
+  }
+  
+  if (botao_nao_sei == HIGH){
+    Serial.println(2);
+    delay(1000);
+  }
+}
