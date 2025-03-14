@@ -37,13 +37,12 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
-			if message == "sim" {
-				err = c.WriteMessage(websocket.TextMessage, []byte("uma perguta"))
-				// se acontecer algum erro ele imprime este erro no servidor
-				if err != nil {
-					log.Println("Write error:", err)
-				}
+			err = c.WriteMessage(websocket.TextMessage, []byte(message))
+			// se acontecer algum erro ele imprime este erro no servidor
+			if err != nil {
+				log.Println("Write error:", err)
 			}
+
 		default:
 			log.Println("No message available in channel")
 			time.Sleep(time.Second * 2)
@@ -80,6 +79,7 @@ func main() {
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -87,63 +87,35 @@ var homeTemplate = template.Must(template.New("").Parse(`
 <script>  
 window.addEventListener("load", function(evt) {
     var output = document.getElementById("output");
-    var input = document.getElementById("input");
     var ws;
 
     var print = function(message) {
-        var d = document.createElement("div");
-        d.textContent = message;
-        output.appendChild(d);
+        var p = document.createElement("p");
+        p.textContent = message;
+        output.appendChild(p);
         output.scroll(0, output.scrollHeight);
+  			console.log(message);
     };
 
-    // Abre a conexão WebSocket automaticamente
     function connectWebSocket() {
-        if (ws) {
-            return;
-        }
         ws = new WebSocket("{{.}}");
         ws.onmessage = function(evt) {
-            print(evt.data); // Exibe apenas a resposta do servidor
+            print(evt.data); // Exibe apenas a resposta do servidor dentro de um <p>
         };
         ws.onclose = function() {
-            ws = null;
+            setTimeout(connectWebSocket, 3000); // Tenta reconectar após 3s
         };
         ws.onerror = function(evt) {
             console.error("WebSocket Error:", evt);
         };
     }
 
-    connectWebSocket(); // Chama a função automaticamente ao carregar a página
-
-    document.getElementById("send").onclick = function(evt) {
-        if (!ws) {
-            return false;
-        }
-        ws.send(input.value);
-        return false;
-    };
-
-    document.getElementById("close").onclick = function(evt) {
-        if (ws) {
-            ws.close();
-        }
-        return false;
-    };
+    connectWebSocket(); // Conecta automaticamente ao carregar a página
 });
 </script>
 </head>
 <body>
-<table>
-<tr><td valign="top" width="50%">
-<form>
-<p><input id="input" type="text" value="Hello world!">
-<button id="send">Send</button>
-<button id="close">Close</button>
-</form>
-</td><td valign="top" width="50%">
 <div id="output" style="max-height: 70vh; overflow-y: scroll;"></div>
-</td></tr></table>
 </body>
 </html>
 `))
