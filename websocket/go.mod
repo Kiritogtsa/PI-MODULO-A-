@@ -1,4 +1,4 @@
-module github.com/kiritogtsa/websocket
+module github.com/kiritogtsa/PI-MODULO-A-/websocket
 
 go 1.24.1
 

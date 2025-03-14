@@ -11,9 +11,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type perguta_resposta struct {
+	respota string
+	perguta string
+}
+
+func (s *perguta_resposta) nome() {
+	return
+}
+
 var addr = flag.String("addr", "localhost:8080", "http service address")
 var upgrader = websocket.Upgrader{}
 var exaplechh chan string
+var respotas []perguta_resposta
 
 // inicia o websocket
 func echo(w http.ResponseWriter, r *http.Request) {

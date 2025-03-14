@@ -1,4 +1,4 @@
-module github.com/kiritogtsa/arduino_go
+module github.com/kiritogtsa/PI-MODULO-A-/arduino
 
 go 1.24.1
 

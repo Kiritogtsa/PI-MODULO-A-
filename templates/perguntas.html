@@ -1,3 +1,64 @@
-{% extends 'base.html' %}
-{% block titulo%} pergunta 1 {% endblock %}
-{% block corpo %} deu certo {% endblock %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<script>  
+window.addEventListener("load", function(evt) {
+    var output = document.getElementById("output");
+    var input = document.getElementById("input");
+    var ws;
+
+    var print = function(message) {
+        var d = document.createElement("div");
+        d.textContent = message;
+        output.appendChild(d);
+        output.scroll(0, output.scrollHeight);
+    };
+
+    // Abre a conexão WebSocket automaticamente
+    function connectWebSocket() {
+        if (ws) {
+            return;
+        }
+        ws = new WebSocket("{{.}}");
+        ws.onmessage = function(evt) {
+            print(evt.data); // Exibe apenas a resposta do servidor
+        };
+        ws.onclose = function() {
+            ws = null;
+        };
+        ws.onerror = function(evt) {
+            console.error("WebSocket Error:", evt);
+        };
+    }
+
+    connectWebSocket(); // Chama a função automaticamente ao carregar a página
+
+    document.getElementById("send").onclick = function(evt) {
+        if (!ws) {
+            return false;
+        }
+        ws.send(input.value);
+        return false;
+    };
+
+    document.getElementById("close").onclick = function(evt) {
+        if (ws) {
+            ws.close();
+        }
+        return false;
+    };
+});
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HELP BOT</title>
+</head>
+<body>
+
+    <img src="">
+
+    <div>
+
+    </div>
+</body>
+</html>
