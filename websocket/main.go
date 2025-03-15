@@ -43,7 +43,7 @@ var upgrader = websocket.Upgrader{}
 var exaplechh chan string
 var respostas []PerguntaResposta
 
-func (s* PerguntaResposta) associar_id_pergunta_resposta(id,pergunta, resposta){
+func (s* PerguntaResposta) associar_id_pergunta_resposta(id int,pergunta string, resposta string){
 	// Crio o objeto resposta
     pr := PerguntaResposta{
         ID:       id,
