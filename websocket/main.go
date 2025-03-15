@@ -41,28 +41,35 @@ type PerguntaResposta struct {
 var addr = flag.String("addr", "localhost:8080", "http service address")
 var upgrader = websocket.Upgrader{}
 var exaplechh chan string
-var respostas []PerguntaResposta
+var respostas = make([]PerguntaResposta, 0)
 
-func (s* PerguntaResposta) associar_id_pergunta_resposta(id int,pergunta string, resposta string){
+func associar_id_pergunta_resposta(id int, pergunta string, resposta string, db *repostasdb) (*PerguntaResposta, int) {
 	// Crio o objeto resposta
-    pr := PerguntaResposta{
-        ID:       id,
-        Pergunta: pergunta,
-        Resposta: resposta,
-    }
+	pr := PerguntaResposta{
+		ID:       id,
+		Pergunta: pergunta,
+		Resposta: resposta,
+	}
+	// verifica no banco de dados se tem mais uma perguta
+	nova_pergunta, err := db.getbyid(id)
+	// se dar um erro entao nao existe mais pergunta, entao ele so fica reatribuindo valores para o
+	fmt.Println(len(respostas))
+	if err != nil {
+		// reseta o id renferenciado, para 1
+		id = 1
 
-    // Adiciona a nova resposta à lista de respostas
-    respostas = append(respostas, pr)
-
-    // Limita o número de respostas a 8 que é a quantidade de perguntas no banco de dados
-    if len(respostas) > 8 {
-        return
-    }
-
-	// chama a função para buscar a pergunta pelo próximo id de acordo com o próximo id d lista
-	db: = repostasdb{}
-	var nova_pergunta = db.getbyid(len(PerguntaResposta)+1)
-	return nova_pergunta
+		nova_pergunta, _ = db.getbyid(id)
+	} else if len(respostas) < id {
+		// aqui ele verifica se o tamanho do array e menor que o id, se for ele vai adicionar o novo objeto no array
+		respostas = append(respostas, pr)
+		id++
+	} else {
+		// se o tamanho do array for maior que o id - 1, ele nao adiciona mais valores, e sim recoloca eles
+		respostas[id-1] = pr
+		id++
+	}
+	// retorna a nova pergunta, sem resposta
+	return nova_pergunta, id
 }
 
 // inicia o websocket
@@ -78,19 +85,11 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var perg *PerguntaResposta
-	if id > len(respostas)-1 {
-		perg, err = repdb.getbyid(id)
-		log.Println(perg, err)
-		if err != nil {
-			log.Println(err)
-			id = 1
-			log.Println(id)
-			log.Println(respostas)
-		} else {
-			respostas = append(respostas, *perg)
-		}
+	perg, err = repdb.getbyid(id)
+	if err != nil {
+		log.Println(err)
 	} else {
-		perg = &respostas[id-1]
+		respostas = append(respostas, *perg)
 	}
 	err = c.WriteMessage(websocket.TextMessage, []byte(perg.Pergunta))
 	if err != nil {
@@ -101,31 +100,12 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
-			var perg *PerguntaResposta
-			log.Println(id)
-			log.Println(len(respostas))
-			if id < len(respostas)-1 {
-				perg = &respostas[id-1]
-			} else {
-				perg, err = repdb.getbyid(id)
-				log.Println(err)
-				if err != nil {
-					log.Println("teste", err)
-				} else {
-					respostas = append(respostas, *perg)
-				}
-			}
+			perg, id = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
 			err = c.WriteMessage(websocket.TextMessage, []byte(perg.Pergunta))
 			if err != nil {
-				log.Println("Write error:", err)
-			}
-			respostas[id-1].Resposta = message
-			id++
-			if id == 9 {
-				id = 1
+				log.Println(err)
 			}
 		default:
-			log.Println("No message available in channel")
 			time.Sleep(time.Second * 2)
 		}
 	}
