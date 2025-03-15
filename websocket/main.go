@@ -43,6 +43,28 @@ var upgrader = websocket.Upgrader{}
 var exaplechh chan string
 var respostas []PerguntaResposta
 
+func (s* PerguntaResposta) associar_id_pergunta_resposta(id,pergunta, resposta){
+	// Crio o objeto resposta
+    pr := PerguntaResposta{
+        ID:       id,
+        Pergunta: pergunta,
+        Resposta: resposta,
+    }
+
+    // Adiciona a nova resposta à lista de respostas
+    respostas = append(respostas, pr)
+
+    // Limita o número de respostas a 8 que é a quantidade de perguntas no banco de dados
+    if len(respostas) > 8 {
+        return
+    }
+
+	// chama a função para buscar a pergunta pelo próximo id de acordo com o próximo id d lista
+	db: = repostasdb{}
+	var nova_pergunta = db.getbyid(len(PerguntaResposta)+1)
+	return nova_pergunta
+}
+
 // inicia o websocket
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
