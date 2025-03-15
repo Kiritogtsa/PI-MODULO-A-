@@ -1,48 +1,107 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-type perguta_resposta struct {
-	respota string
-	perguta string
+type repostasdb struct {
+	DB *sql.DB
 }
 
-func (s *perguta_resposta) nome() {
-	return
+func (r *repostasdb) getbyid(id int) (*PerguntaResposta, error) {
+	query := "select * from pergunta where id_pergunta=?"
+	row := r.DB.QueryRow(query, id)
+	var pergunta PerguntaResposta
+	err := row.Scan(&pergunta.ID, &pergunta.Pergunta)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("nenhuma pergunta encontrada para o ID %d", id)
+		}
+		return nil, err
+	}
+	return &pergunta, nil
+}
+
+type PerguntaResposta struct {
+	ID       int    `json:"id"`
+	Resposta string `json:"resposta"`
+	Pergunta string `json:"pergunta"`
 }
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
 var upgrader = websocket.Upgrader{}
 var exaplechh chan string
-var respotas []perguta_resposta
+var respostas []PerguntaResposta
 
 // inicia o websocket
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
+	var id int = 1
+	if err != nil {
+		log.Print("Upgrade error:", err)
+	}
+	repdb, err := abrir_banco_dados()
 	if err != nil {
 		log.Print("Upgrade error:", err)
 		return
 	}
-
+	var perg *PerguntaResposta
+	if id > len(respostas)-1 {
+		perg, err = repdb.getbyid(id)
+		log.Println(perg, err)
+		if err != nil {
+			log.Println(err)
+			id = 1
+			log.Println(id)
+			log.Println(respostas)
+		} else {
+			respostas = append(respostas, *perg)
+		}
+	} else {
+		perg = &respostas[id-1]
+	}
+	err = c.WriteMessage(websocket.TextMessage, []byte(perg.Pergunta))
+	if err != nil {
+		log.Println("Write error:", err)
+	}
+	id++
 	for {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
-			err = c.WriteMessage(websocket.TextMessage, []byte(message))
-			// se acontecer algum erro ele imprime este erro no servidor
+			var perg *PerguntaResposta
+			log.Println(id)
+			log.Println(len(respostas))
+			if id < len(respostas)-1 {
+				perg = &respostas[id-1]
+			} else {
+				perg, err = repdb.getbyid(id)
+				log.Println(err)
+				if err != nil {
+					log.Println("teste", err)
+				} else {
+					respostas = append(respostas, *perg)
+				}
+			}
+			err = c.WriteMessage(websocket.TextMessage, []byte(perg.Pergunta))
 			if err != nil {
 				log.Println("Write error:", err)
 			}
-
+			respostas[id-1].Resposta = message
+			id++
+			if id == 9 {
+				id = 1
+			}
 		default:
 			log.Println("No message available in channel")
 			time.Sleep(time.Second * 2)
@@ -54,7 +113,6 @@ type Reposta struct {
 	Reposta string
 }
 
-// ler o respota do arduino e coloca a respota num chanal
 func ardcuino(w http.ResponseWriter, r *http.Request) {
 	var reposta Reposta
 	err := json.NewDecoder(r.Body).Decode(&reposta)
@@ -66,8 +124,17 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 func home(w http.ResponseWriter, r *http.Request) {
 	homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
 }
+func abrir_banco_dados() (*repostasdb, error) {
 
-// função que inicia o servidor
+	db, err := sql.Open("sqlite3", "./pibancodedados")
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	fmt.Println("aqui")
+	return &repostasdb{DB: db}, nil
+}
+
 func main() {
 	exaplechh = make(chan string)
 	flag.Parse()
@@ -79,7 +146,6 @@ func main() {
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -101,9 +167,6 @@ window.addEventListener("load", function(evt) {
         ws = new WebSocket("{{.}}");
         ws.onmessage = function(evt) {
             print(evt.data); // Exibe apenas a resposta do servidor dentro de um <p>
-        };
-        ws.onclose = function() {
-            setTimeout(connectWebSocket, 3000); // Tenta reconectar após 3s
         };
         ws.onerror = function(evt) {
             console.error("WebSocket Error:", evt);
