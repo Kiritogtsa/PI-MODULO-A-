@@ -2,30 +2,3 @@ python_teste
 __pycache__
 .mypy_cache
 ./websocket/pibancodedados
-
-
-function hover(botao){
-        if(botao == 'sim'){
-            let botao_sim = document.getElementById('sim');
-            botao_sim.style.border = '1px solid black';
-        }else if(botao == 'nao'){
-            let botao_nao = document.getElementById('nao');
-            botao_sim.style.border = '1px solid black';
-        }else if(botao == 'nao_sei'){
-            let botao_nao_sei = document.getElementById('nao_sei');
-            botao_sim.style.border = '1px solid black';
-        }
-    }
-
-    function desativa_hover(botao){
-        if(botao == 'sim'){
-            let botao_sim = document.getElementById('sim');
-            botao_sim.style.border = 'none';
-        }else if(botao == 'nao'){
-            let botao_nao = document.getElementById('nao');
-            botao_sim.style.border = 'none';
-        }else if(botao == 'nao_sei'){
-            let botao_nao_sei = document.getElementById('nao_sei');
-            botao_sim.style.border = 'none';
-        }
-    }
