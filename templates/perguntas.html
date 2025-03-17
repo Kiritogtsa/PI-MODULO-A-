@@ -47,7 +47,9 @@
         }
         ws = new WebSocket("{{.}}");
         ws.onmessage = function(evt) {
+            if (evt.data){
             print(evt.data); // Exibe apenas a resposta do servidor
+            }
         };
         ws.onclose = function() {
             ws = null;
