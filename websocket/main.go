@@ -124,7 +124,7 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 	exaplechh <- reposta.Reposta
 }
 func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
+	http.ServeFile(w, r, "../templates/")
 }
 func abrir_banco_dados() (*repostasdb, error) {
 
@@ -146,41 +146,3 @@ func main() {
 	http.HandleFunc("/arduino", ardcuino)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
-
-var homeTemplate = template.Must(template.New("").Parse(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<script>  
-window.addEventListener("load", function(evt) {
-    var output = document.getElementById("output");
-    var ws;
-
-    var print = function(message) {
-        var p = document.createElement("p");
-        p.textContent = message;
-        output.appendChild(p);
-        output.scroll(0, output.scrollHeight);
-  			console.log(message);
-    };
-
-    function connectWebSocket() {
-        ws = new WebSocket("{{.}}");
-        ws.onmessage = function(evt) {
-            print(evt.data); // Exibe apenas a resposta do servidor dentro de um <p>
-        };
-        ws.onerror = function(evt) {
-            console.error("WebSocket Error:", evt);
-        };
-    }
-
-    connectWebSocket(); // Conecta automaticamente ao carregar a página
-});
-</script>
-</head>
-<body>
-<div id="output" style="max-height: 70vh; overflow-y: scroll;"></div>
-</body>
-</html>
-`))
