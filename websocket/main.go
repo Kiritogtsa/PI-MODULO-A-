@@ -156,10 +156,27 @@ func criar_o_arquivo(d Data_log) error {
 	return nil
 }
 func sendemail(path, nome string) {
-	// aqui a gente vai enviar o email
+	arquivo, err := os.Open("./variaveis.json")
+	if err != nil {
+		fmt.Println("Erro ao abrir o arquivo:", err)
+		return
+	}
+	defer arquivo.Close()
+	type jsondata struct {
+		Email      string `json:"email"`
+		Email_send string `json:"email_send"`
+		Key        string `json:"key"`
+		Api        string `json:"api"`
+		Port       int    `json:"port"`
+	}
+	var data jsondata
+	err = json.NewDecoder(arquivo).Decode(&data)
+	if err != nil {
+		log.Println("sei la: ", err)
+	}
 	message := mail.NewMessage()
-	message.SetHeader("From", "tenseishitarakenseshita@gmail.com")
-	message.SetHeader("To", "thiago.da.silva2341@gmail.com")
+	message.SetHeader("From", data.Email)
+	message.SetHeader("To", data.Email_send)
 	message.SetHeader("Subject", "Log do cliente: "+nome)
 	message.SetBody("text/html",
 		"<html>"+
@@ -169,8 +186,7 @@ func sendemail(path, nome string) {
 			"</html>")
 	// aqui a gente vai anexar o arquivo
 	message.Attach(path)
-	// aqui a gente vdialer := mail.NewDialer("smtp.gmail.com", 587, "seuemail@gmail.com", "SENHA_DE_APP")
-	dialer := mail.NewDialer("smtp.gmail.com", 587, "tenseishitarrakenseshita@gmail.com", "vlcq ubvd fmel dzym")
+	dialer := mail.NewDialer(data.Api, data.Port, data.Email, data.Key)
 	if err := dialer.DialAndSend(message); err != nil {
 		log.Println(err)
 	}
