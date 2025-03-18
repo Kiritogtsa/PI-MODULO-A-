@@ -160,6 +160,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 				}
 				log.Println(enviar_message(jsondata, c))
 				_, message, err := c.ReadMessage()
+				log.Println(string(message))
 				if err != nil {
 					log.Println(err)
 				}
@@ -169,6 +170,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 				}
 				log.Println(criar_o_arquivo(file_conteudo))
 			} else {
+				fmt.Println(respostas)
 				perg, id, terminou = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
 				jsondata, err := covertdatatojson("string", perg, "")
 				if err != nil {

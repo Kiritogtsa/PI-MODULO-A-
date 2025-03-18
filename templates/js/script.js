@@ -19,7 +19,6 @@ window.addEventListener("load", function(evt) {
             var data = JSON.parse(evt.data);      
             console.log(data);
             if (data.type == "string") {
-                console.log("aqui")
                 print(data.msg);
 
             } else if (data.type === "html") {
@@ -36,8 +35,15 @@ window.addEventListener("load", function(evt) {
             console.error("Erro no WebSocket:", evt);
         };
     }
-
-    function criarCampoInput() {
+    function removercampopertunta() {
+        var pergunta = document.getElementById("pergunta");
+        pergunta.innerHTML = "";
+    }
+    function removeCampoInput() {
+        var inputContainer = document.getElementById("input-container");
+        inputContainer.innerHTML = "";
+    }
+    function criarCampoInput() { 
         var inputContainer = document.getElementById("input-container");
         inputContainer.innerHTML = '<input type="text" id="nome" placeholder="Digite seu nome">';
         var sendButton = document.createElement("button");
@@ -45,12 +51,17 @@ window.addEventListener("load", function(evt) {
         sendButton.onclick = function() {
             var nome = document.getElementById("nome").value;
             if (ws) {
+                console.log("Enviando nome:", nome);
                 ws.send(nome);
+                removeCampoInput();
             }
         };
- 
-       ws.send(input.value);
-        return false;
+        inputContainer.appendChild(sendButton);
+        document.getElementById("nome").addEventListener("keyup", function(event) {
+            if (event.keyCode === 13) {
+                ws.send(document.getElementById("nome").value);
+            }
+        }); 
     };
 
     
