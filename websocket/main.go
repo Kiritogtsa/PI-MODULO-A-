@@ -96,7 +96,8 @@ func associar_id_pergunta_resposta(id int, pergunta string, resposta string, db 
 }
 
 func enviar_message(msg []byte, ws *websocket.Conn) error {
-	return ws.WriteJSON(msg)
+	fmt.Println(string(msg))
+	return ws.WriteMessage(websocket.TextMessage, msg)
 }
 
 func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error) {
@@ -132,6 +133,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print("Upgrade error:", err)
 	}
+	fmt.Println("aqui")
 	repdb, err := abrir_banco_dados()
 	if err != nil {
 		log.Print("Upgrade error:", err)
@@ -142,6 +144,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	fmt.Println(jsondata)
 	log.Println(enviar_message(jsondata, c))
 	id++
 	var terminou bool = false
@@ -149,7 +152,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
-			if terminou {
+			if terminou == true {
 				terminou = false
 				jsondata, err := covertdatatojson("html", nil, "sei la depois a gente pensa melhor nisso")
 				if err != nil {
@@ -192,7 +195,7 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 	exaplechh <- reposta.Reposta
 }
 func home(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "../templates/")
+	http.ServeFile(w, r, "../templates/index.html")
 }
 func abrir_banco_dados() (*repostasdb, error) {
 
@@ -208,6 +211,8 @@ func main() {
 	exaplechh = make(chan string)
 	flag.Parse()
 	log.SetFlags(0)
+	fs := http.FileServer(http.Dir("../templates"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/echo", echo)
 	http.HandleFunc("/", home)
 	http.HandleFunc("/arduino", ardcuino)
