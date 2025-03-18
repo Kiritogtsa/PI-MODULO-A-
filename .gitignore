@@ -1,5 +1,5 @@
 python_teste
 __pycache__
 .mypy_cache
-./websocket/pibancodedados
+websocket/pibancodedados
 websocket/log/
