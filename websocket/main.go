@@ -122,9 +122,25 @@ func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error
 	return jsondata, nil
 }
 
+// função para verificar se a pasta dos logs ja existe, se nao existir ele cria
+func isexist(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if err := os.Mkdir(path, 0777); err != nil {
+			return false
+		}
+		return true
+	}
+	return true
+}
+func save_log(path, nome string) error {
+	return nil
+}
+
 // funçao para criar o arquvo com as repostas
 // tambem precisa verificar se e para colocar no banco de dados como um log, dai eu preciso pegar o path
 func criar_o_arquivo(d Data_log) error {
+	log.Println(isexist("log"))
 	data, err := json.Marshal(d)
 	if err != nil {
 		log.Println(err)
