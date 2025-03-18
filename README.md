@@ -13,7 +13,14 @@ depois ativar o ambiente virtual com o nome/bin/active,
 depois para sair e so deactivave
 no ambiente virtual instalar com o pip as seguites blibioteclas,
 fask, pyserial e async
+Deve criar um arquivo JSON na pasta `websocket` para que o sistema possa enviar e-mails.
 
-
-
-Eu devo criar uma função que vai receber a resposta do usuário com o arduíno e acossia-la a pergunta atual e buscar a próxima pergunta no banco de dados e criar um novo objeto. A função no main.go 
+**Exemplo de arquivo `variaveis.json`:**
+```json
+{
+  "email": "seu-email@gmail.com",
+  "email_send": "destinatario@gmail.com",
+  "key": "sua-chave-de-autenticacao",
+  "api": "smtp.seu-servidor.com",
+  "port": 587
+}
