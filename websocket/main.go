@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
 	_ "github.com/mattn/go-sqlite3"
+	"gopkg.in/mail.v2"
 )
 
 type repostasdb struct {
@@ -123,8 +125,39 @@ func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error
 // funçao para criar o arquvo com as repostas
 // tambem precisa verificar se e para colocar no banco de dados como um log, dai eu preciso pegar o path
 func criar_o_arquivo(d Data_log) error {
-
+	data, err := json.Marshal(d)
+	if err != nil {
+		log.Println(err)
+	}
+	path := "log/" + d.Name + time.DateTime + ".txt"
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0777)
+	defer file.Close()
+	if err != nil {
+		log.Println(err)
+	}
+	file.Write(data)
+	sendemail(path, d.Name)
 	return nil
+}
+func sendemail(path, nome string) {
+	// aqui a gente vai enviar o email
+	message := mail.NewMessage()
+	message.SetHeader("From", "tenseishitarakenseshita@gmail.com")
+	message.SetHeader("To", "thiago.da.silva2341@gmail.com")
+	message.SetHeader("Subject", "Log do cliente: "+nome)
+	message.SetBody("text/html",
+		"<html>"+
+			"<body>"+
+			"<h1>Log do cliente com o nome :"+nome+"</h1>"+
+			"</body>"+
+			"</html>")
+	// aqui a gente vai anexar o arquivo
+	message.Attach(path)
+	// aqui a gente vdialer := mail.NewDialer("smtp.gmail.com", 587, "seuemail@gmail.com", "SENHA_DE_APP")
+	dialer := mail.NewDialer("smtp.gmail.com", 587, "tenseishitarrakenseshita@gmail.com", "vlcq ubvd fmel dzym")
+	if err := dialer.DialAndSend(message); err != nil {
+		log.Println(err)
+	}
 }
 
 // inicia o websocket
