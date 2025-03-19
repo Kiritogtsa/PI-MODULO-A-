@@ -50,7 +50,7 @@ func (r *repostasdb) getbyid(id int) (*PerguntaResposta, error) {
 	return &pergunta, nil
 }
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
 var upgrader = websocket.Upgrader{}
 var exaplechh chan string
 var respostas = make([]PerguntaResposta, 0)
@@ -267,7 +267,7 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 	exaplechh <- reposta.Reposta
 }
 func home(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "../templates/index.html")
+	http.ServeFile(w, r, "templates/index.html")
 }
 func abrir_banco_dados() (*repostasdb, error) {
 
@@ -283,7 +283,7 @@ func main() {
 	exaplechh = make(chan string)
 	flag.Parse()
 	log.SetFlags(0)
-	fs := http.FileServer(http.Dir("../templates"))
+	fs := http.FileServer(http.Dir("templates"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/echo", echo)
 	http.HandleFunc("/", home)
