@@ -28,6 +28,7 @@ type PerguntaResposta struct {
 type Data struct {
 	Tipo string `json:"type"`
 	Msg  string `json:"msg"`
+	Res  string `json:"resp"`
 }
 
 type Data_log struct {
@@ -107,12 +108,14 @@ func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error
 	if p == nil {
 		d = Data{
 			Tipo: tipo,
-			Msg:  s,
+			Msg:  "Nenhuma pergunta disponível", // Evita acessar um ponteiro nulo
+			Res:  s,
 		}
 	} else {
 		d = Data{
 			Tipo: tipo,
 			Msg:  p.Pergunta,
+			Res:  s,
 		}
 	}
 	jsondata, err := json.Marshal(d)
@@ -161,6 +164,7 @@ func sendemail(path, nome string) {
 		fmt.Println("Erro ao abrir o arquivo:", err)
 		return
 	}
+	fmt.Println(arquivo)
 	defer arquivo.Close()
 	type jsondata struct {
 		Email      string `json:"email"`
@@ -174,6 +178,7 @@ func sendemail(path, nome string) {
 	if err != nil {
 		log.Println("sei la: ", err)
 	}
+	fmt.Println(data)
 	message := mail.NewMessage()
 	message.SetHeader("From", data.Email)
 	message.SetHeader("To", data.Email_send)
@@ -217,7 +222,8 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
-			if terminou == true {
+			if terminou {
+				fmt.Println("aqui")
 				terminou = false
 				jsondata, err := covertdatatojson("html", nil, "sei la depois a gente pensa melhor nisso")
 				if err != nil {
@@ -235,9 +241,8 @@ func echo(w http.ResponseWriter, r *http.Request) {
 				}
 				log.Println(criar_o_arquivo(file_conteudo))
 			} else {
-				fmt.Println(respostas)
 				perg, id, terminou = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
-				jsondata, err := covertdatatojson("string", perg, "")
+				jsondata, err := covertdatatojson("string", perg, message)
 				if err != nil {
 					log.Println(err)
 				}
