@@ -222,6 +222,13 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 		select {
 		case message := <-exaplechh:
+
+			perg, id, terminou = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
+			jsondata, err := covertdatatojson("string", perg, message)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println(enviar_message(jsondata, c))
 			if terminou {
 				fmt.Println("aqui")
 				terminou = false
@@ -240,13 +247,6 @@ func echo(w http.ResponseWriter, r *http.Request) {
 					Date: &respostas,
 				}
 				log.Println(criar_o_arquivo(file_conteudo))
-			} else {
-				perg, id, terminou = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
-				jsondata, err := covertdatatojson("string", perg, message)
-				if err != nil {
-					log.Println(err)
-				}
-				log.Println(enviar_message(jsondata, c))
 			}
 		default:
 			time.Sleep(time.Second * 2)
