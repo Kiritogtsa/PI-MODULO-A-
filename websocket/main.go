@@ -269,16 +269,57 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 func home(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/index.html")
 }
-func abrir_banco_dados() (*repostasdb, error) {
 
-	db, err := sql.Open("sqlite3", "./pibancodedados")
+func abrir_banco_dados() (*repostasdb, error) {
+	// Abre ou cria o banco de dados SQLite
+	db, err := sql.Open("sqlite3", "./pibancodedados.db")
 	if err != nil {
-		log.Println(err)
+		log.Println("Erro ao abrir o banco de dados:", err)
 		return nil, err
 	}
-	fmt.Println("aqui")
+
+	// Criação da tabela 'pergunta' se não existir
+	createTableSQL := `CREATE TABLE IF NOT EXISTS pergunta (
+		id_pergunta INTEGER PRIMARY KEY AUTOINCREMENT,
+		pergunta TEXT NOT NULL
+	);`
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		log.Println("Erro ao criar a tabela:", err)
+		return nil, err
+	}
+
+	// Verifica se há registros na tabela
+	var count int
+	row := db.QueryRow("SELECT COUNT(*) FROM pergunta")
+	err = row.Scan(&count)
+	if err != nil {
+		log.Println("Erro ao contar registros:", err)
+		return nil, err
+	}
+
+	// Se a tabela estiver vazia, insere as perguntas iniciais
+	if count == 0 {
+		insertSQL := `INSERT INTO pergunta (pergunta) VALUES 
+			('A tomada onde o computador/notebook está conectado está em boas condições, sem marcas escuras e de queimada?'),
+			('A fonte do computador/notebook liga quando aperta o botão de ligar ou conecta na tomada?'),
+			('As luzes(LEDs)/ventoinha do computador/notebook acendem/ligam ao tentar ligar?'),
+			('O monitor ou tela liga e exibe alguma imagem ou logo de inicialização?'),
+			('Você ouve algum "beep" ou som ao ligar o computador/notebook?'),
+			('Alguma mensagem de erro aparece na tela ao tentar ligar o computador?'),
+			('O computador reinicia ou desliga ao tentar ligar?'),
+			('Seu problema foi resolvido?');`
+		_, err = db.Exec(insertSQL)
+		if err != nil {
+			log.Println("Erro ao inserir perguntas iniciais:", err)
+			return nil, err
+		}
+	}
+
+	fmt.Println("Banco de dados pronto para uso.")
 	return &repostasdb{DB: db}, nil
 }
+
 func main() {
 	exaplechh = make(chan string)
 	flag.Parse()
