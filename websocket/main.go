@@ -183,13 +183,14 @@ func sendemail(path, nome string) {
 	message.SetHeader("From", data.Email)
 	message.SetHeader("To", data.Email_send)
 	message.SetHeader("Subject", "Log do cliente: "+nome)
-	message.SetBody("text/html",
-		"<html>"+
-			"<body>"+
-			"<h1>Log do cliente com o nome :"+nome+"</h1>"+
-			"</body>"+
-			"</html>")
-	// aqui a gente vai anexar o arquivo
+	corpoEmail := "<html><body>"
+	corpoEmail += "<h1>Log do cliente: " + nome + "</h1>"
+	corpoEmail += "<table border='1'><tr><th>Pergunta</th><th>Resposta</th></tr>"
+	for _, pr := range respostas {
+		corpoEmail += "<tr><td>" + pr.Pergunta + "</td><td>" + pr.Resposta + "</td></tr>"
+	}
+	corpoEmail += "</table></body></html>"
+	message.SetBody("text/html", corpoEmail)
 	message.Attach(path)
 	dialer := mail.NewDialer(data.Api, data.Port, data.Email, data.Key)
 	if err := dialer.DialAndSend(message); err != nil {
