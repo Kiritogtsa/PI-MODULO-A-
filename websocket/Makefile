@@ -13,6 +13,11 @@ run:
 	docker run -d -p $(PORT):$(PORT) --name $(CONTAINER_NAME) $(IMAGE_NAME)
 
 # Parar o container
+start:
+	docker start $(CONTAINER_NAME) || true
+
+
+# Parar o container
 stop:
 	docker stop $(CONTAINER_NAME) || true
 
