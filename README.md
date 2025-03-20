@@ -69,9 +69,6 @@ Crie um arquivo JSON na pasta `websocket` para que o sistema possa enviar e-mail
 ## .gitignore
 
 O arquivo `.gitignore` está configurado para ignorar os seguintes itens:
-- `python_teste`
-- `__pycache__`
-- `.mypy_cache`
 - `websocket/pibancodedados`
 - `websocket/log/`
 - `websocket/*.json`
