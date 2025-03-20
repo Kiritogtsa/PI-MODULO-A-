@@ -61,9 +61,6 @@ p{
     font-family: "Bebas Neue", sans-serif;
 }
 
-.sim:hover, .nao:hover, .nao_sei:hover{
-    border: 5px solid black;
-}
 
 .img_buttons{
     width: 50%;
