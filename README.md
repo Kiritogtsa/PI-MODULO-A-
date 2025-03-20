@@ -48,12 +48,17 @@ Crie um arquivo JSON na pasta `websocket` para que o sistema possa enviar e-mail
    ```
 2. Construa a imagem Docker:
    ```sh
-   docker build -t minha-imagem .
+      make build
    ```
 3. Execute o container Docker:
    ```sh
-   docker run -d -p 8080:8080 --name meu-servidor minha-imagem
+    make run
    ```
+4. parar o conteiner e rodar ele outra vez:
+  ```sh
+    make stop # para o conteiner
+    make start # inicia ele denovo
+  ```
 
 ### Cliente de Teste
 
