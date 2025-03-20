@@ -11,7 +11,7 @@ div{
     border-radius: 20px;
     display: flex;
     justify-content: center;
-    margin: 3% 20% 0 20%;
+    margin: 1% 20% 0 20%;
 }
 
 p{
@@ -75,6 +75,7 @@ h4{
     font-family: "Bebas Neue", sans-serif;
     text-align: center;
     font-size: 25px;
+    font-weight: 100;
 }
 
 input{
@@ -98,6 +99,6 @@ button{
 
 .botao{
     margin: auto;
-    width: 800px;
-    height: 400px;
+    width: 700px;
+    height: 250px;
 }
