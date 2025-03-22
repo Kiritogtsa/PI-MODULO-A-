@@ -148,7 +148,7 @@ func criar_o_arquivo(d Data_log) error {
 	if err != nil {
 		log.Println(err)
 	}
-	path := "log/" + d.Name + time.DateTime + ".txt"
+	path := "log/" + d.Name + time.Now().String() + ".txt"
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0777)
 	defer file.Close()
 	if err != nil {
