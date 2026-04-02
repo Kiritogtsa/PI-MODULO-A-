@@ -18,19 +18,20 @@ func read_input() {
 		fmt.Println("digite 1 para sim,2 para nao,3 para nao sei")
 		var input string
 		fmt.Scanln(&input)
-		if input == "1" {
+		switch input {
+		case "1":
 			input = "sim"
 			fmt.Println(input)
 			arduino_response <- input
-		} else if input == "2" {
+		case "2":
 			input = "nao"
 			fmt.Println(input)
 			arduino_response <- input
-		} else if input == "3" {
+		case "3":
 			input = "nao_sei"
 			fmt.Println(input)
 			arduino_response <- input
-		} else {
+		default:
 			fmt.Println("digite corretamente:")
 		}
 	}
