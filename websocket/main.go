@@ -8,11 +8,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/mail.v2"
+)
+
+const (
+	pongWait   = 60 * time.Second
+	pingPeriod = (pongWait * 9) / 10
 )
 
 type repostasdb struct {
@@ -50,10 +56,12 @@ func (r *repostasdb) getbyid(id int) (*PerguntaResposta, error) {
 	return &pergunta, nil
 }
 
-var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
-var upgrader = websocket.Upgrader{}
-var exaplechh chan string
-var respostas = make([]PerguntaResposta, 0)
+var (
+	addr      = flag.String("addr", "0.0.0.0:8080", "http service address")
+	upgrader  = websocket.Upgrader{}
+	exaplechh chan string
+	respostas = make([]PerguntaResposta, 0)
+)
 
 func perguta_inicial(db *repostasdb) (*PerguntaResposta, int) {
 	perg, err := db.getbyid(1)
@@ -64,7 +72,12 @@ func perguta_inicial(db *repostasdb) (*PerguntaResposta, int) {
 	return perg, 2
 }
 
-func associar_id_pergunta_resposta(id int, pergunta string, resposta string, db *repostasdb) (*PerguntaResposta, int, bool) {
+func associar_id_pergunta_resposta(
+	id int,
+	pergunta string,
+	resposta string,
+	db *repostasdb,
+) (*PerguntaResposta, int, bool) {
 	// Crio o objeto resposta
 	pr := PerguntaResposta{
 		ID:       id,
@@ -129,13 +142,14 @@ func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error
 func isexist(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		if err := os.Mkdir(path, 0777); err != nil {
+		if err := os.Mkdir(path, 0o777); err != nil {
 			return false
 		}
 		return true
 	}
 	return true
 }
+
 func save_log(path, nome string) error {
 	return nil
 }
@@ -148,8 +162,8 @@ func criar_o_arquivo(d Data_log) error {
 	if err != nil {
 		log.Println(err)
 	}
-	path := "log/" + d.Name + time.Now().String() + ".txt"
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0777)
+	path := "log/" + d.Name + time.Now().String() + ".json"
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o777)
 	defer file.Close()
 	if err != nil {
 		log.Println(err)
@@ -158,6 +172,7 @@ func criar_o_arquivo(d Data_log) error {
 	sendemail(path, d.Name)
 	return nil
 }
+
 func sendemail(path, nome string) {
 	arquivo, err := os.Open("./variaveis.json")
 	if err != nil {
@@ -183,19 +198,42 @@ func sendemail(path, nome string) {
 	message.SetHeader("From", data.Email)
 	message.SetHeader("To", data.Email_send)
 	message.SetHeader("Subject", "Log do cliente: "+nome)
-	corpoEmail := "<html><body>"
-	corpoEmail += "<h1>Log do cliente: " + nome + "</h1>"
-	corpoEmail += "<table border='1'><tr><th>Pergunta</th><th>Resposta</th></tr>"
+	var corpoEmail strings.Builder
+	corpoEmail.WriteString("<html><body>")
+	corpoEmail.WriteString("<h1>Log do cliente: " + nome + "</h1>")
+	corpoEmail.WriteString("<table border='1'><tr><th>Pergunta</th><th>Resposta</th></tr>")
 	for _, pr := range respostas {
-		corpoEmail += "<tr><td>" + pr.Pergunta + "</td><td>" + pr.Resposta + "</td></tr>"
+		corpoEmail.WriteString("<tr><td>" + pr.Pergunta + "</td><td>" + pr.Resposta + "</td></tr>")
 	}
-	corpoEmail += "</table></body></html>"
-	message.SetBody("text/html", corpoEmail)
+	corpoEmail.WriteString("</table></body></html>")
+	message.SetBody("text/html", corpoEmail.String())
 	message.Attach(path)
 	dialer := mail.NewDialer(data.Api, data.Port, data.Email, data.Key)
 	if err := dialer.DialAndSend(message); err != nil {
 		log.Println(err)
 	}
+}
+
+func create_connection(ws *websocket.Conn, done chan struct{}) {
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error {
+		ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+					close(done)
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
 }
 
 // inicia o websocket
@@ -204,10 +242,12 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print("Upgrade error:", err)
 	}
+	done := make(chan struct{})
+	create_connection(c, done)
 	fmt.Println("aqui")
 	repdb, err := abrir_banco_dados()
 	if err != nil {
-		log.Print("Upgrade error:", err)
+		log.Print("create date base error:", err)
 		return
 	}
 	perg, id := perguta_inicial(repdb)
@@ -218,41 +258,77 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(jsondata)
 	log.Println(enviar_message(jsondata, c))
 	id++
+	timeout := 30 * time.Second
+	timer := time.NewTimer(30 * time.Second)
+	defer timer.Stop()
+	go func() {
+		defer close(done)
+		for {
+			_, msg, err := c.ReadMessage()
+			if err != nil {
+				return
+			}
+			exaplechh <- string(msg)
+		}
+	}()
 	var terminou bool = false
-	for {
-		// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
-		select {
-		case message := <-exaplechh:
 
-			perg, id, terminou = associar_id_pergunta_resposta(id, perg.Pergunta, message, repdb)
+	for {
+		select {
+
+		case message, ok := <-exaplechh:
+			if !ok {
+				fmt.Println("canal fechado")
+				return
+			}
+
+			// reset timeout
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timer.Reset(timeout)
+
+			perg, id, terminou = associar_id_pergunta_resposta(
+				id,
+				perg.Pergunta,
+				message,
+				repdb,
+			)
+
 			jsondata, err := covertdatatojson("string", perg, message)
 			if err != nil {
 				log.Println(err)
+				continue
 			}
+
 			log.Println(enviar_message(jsondata, c))
+
 			if terminou {
-				fmt.Println("aqui")
 				terminou = false
-				jsondata, err := covertdatatojson("html", nil, "sei la depois a gente pensa melhor nisso")
+
+				jsondata, err := covertdatatojson(
+					"html",
+					nil,
+					"sei la depois a gente pensa melhor nisso",
+				)
 				if err != nil {
 					log.Println(err)
+					continue
 				}
+
 				log.Println(enviar_message(jsondata, c))
-				_, message, err := c.ReadMessage()
-				log.Println(string(message))
-				if err != nil {
-					log.Println(err)
-				}
-				file_conteudo := Data_log{
-					Name: string(message),
-					Date: &respostas,
-				}
-				log.Println(criar_o_arquivo(file_conteudo))
 			}
-		default:
-			time.Sleep(time.Second * 2)
+
+		case <-timer.C:
+			fmt.Println("timeout de inatividade")
+			return
+		case <-done:
+			fmt.Println("Conexão encerrada")
+			return
 		}
 	}
+
+	// ler o chanal, e caso tiver messagem envia para o cliente WebSocket
 }
 
 type Reposta struct {
@@ -267,6 +343,7 @@ func ardcuino(w http.ResponseWriter, r *http.Request) {
 	}
 	exaplechh <- reposta.Reposta
 }
+
 func home(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/index.html")
 }
