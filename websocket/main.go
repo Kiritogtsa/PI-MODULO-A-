@@ -14,22 +14,15 @@ import (
 	"github.com/gorilla/websocket"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/mail.v2"
+
+	"github.com/kiritogtsa/PI-MODULO-A-/websocket/dto"
+	"github.com/kiritogtsa/PI-MODULO-A-/websocket/model"
 )
 
 const (
 	pongWait   = 60 * time.Second
 	pingPeriod = (pongWait * 9) / 10
 )
-
-type repostasdb struct {
-	DB *sql.DB
-}
-
-type PerguntaResposta struct {
-	ID       int    `json:"id"`
-	Resposta string `json:"resposta"`
-	Pergunta string `json:"pergunta"`
-}
 
 type Data struct {
 	Tipo string `json:"type"`
@@ -39,32 +32,18 @@ type Data struct {
 
 type Data_log struct {
 	Name string
-	Date *[]PerguntaResposta
-}
-
-func (r *repostasdb) getbyid(id int) (*PerguntaResposta, error) {
-	query := "select * from pergunta where id_pergunta=?"
-	row := r.DB.QueryRow(query, id)
-	var pergunta PerguntaResposta
-	err := row.Scan(&pergunta.ID, &pergunta.Pergunta)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("nenhuma pergunta encontrada para o ID %d", id)
-		}
-		return nil, err
-	}
-	return &pergunta, nil
+	Date *[]model.PerguntaResposta
 }
 
 var (
 	addr      = flag.String("addr", "0.0.0.0:8080", "http service address")
 	upgrader  = websocket.Upgrader{}
 	exaplechh chan string
-	respostas = make([]PerguntaResposta, 0)
+	respostas = make([]model.PerguntaResposta, 0)
 )
 
-func perguta_inicial(db *repostasdb) (*PerguntaResposta, int) {
-	perg, err := db.getbyid(1)
+func perguta_inicial(db *dto.Repostasdb) (*model.PerguntaResposta, int) {
+	perg, err := db.Getbyid(1)
 	if err != nil {
 		log.Printf("deu algum erro ao receber a pergunta: %v", err)
 		return nil, 0
@@ -76,10 +55,10 @@ func associar_id_pergunta_resposta(
 	id int,
 	pergunta string,
 	resposta string,
-	db *repostasdb,
-) (*PerguntaResposta, int, bool) {
+	db *dto.Repostasdb,
+) (*model.PerguntaResposta, int, bool) {
 	// Crio o objeto resposta
-	pr := PerguntaResposta{
+	pr := model.PerguntaResposta{
 		ID:       id,
 		Pergunta: pergunta,
 		Resposta: resposta,
@@ -90,14 +69,14 @@ func associar_id_pergunta_resposta(
 	// variavel para verificar se as perguntas terminaram
 	var terminou bool
 	// verifica no banco de dados se tem mais uma perguta
-	nova_pergunta, err := db.getbyid(id)
+	nova_pergunta, err := db.Getbyid(id)
 	// se dar um erro entao nao existe mais pergunta, entao ele so fica reatribuindo valores para o
 	fmt.Println(len(respostas))
 	if err != nil {
 		// reseta o id renferenciado, para 1
 		id = 1
 		terminou = true
-		nova_pergunta, _ = db.getbyid(id)
+		nova_pergunta, _ = db.Getbyid(id)
 	} else if len(respostas) < id {
 		// aqui ele verifica se o tamanho do array e menor que o id, se for ele vai adicionar o novo objeto no array
 		respostas = append(respostas, pr)
@@ -116,7 +95,7 @@ func enviar_message(msg []byte, ws *websocket.Conn) error {
 	return ws.WriteMessage(websocket.TextMessage, msg)
 }
 
-func covertdatatojson(tipo string, p *PerguntaResposta, s string) ([]byte, error) {
+func covertdatatojson(tipo string, p *model.PerguntaResposta, s string) ([]byte, error) {
 	var d Data
 	if p == nil {
 		d = Data{
@@ -348,7 +327,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/index.html")
 }
 
-func abrir_banco_dados() (*repostasdb, error) {
+func abrir_banco_dados() (*dto.Repostasdb, error) {
 	// Abre ou cria o banco de dados SQLite
 	db, err := sql.Open("sqlite3", "./pibancodedados.db")
 	if err != nil {
@@ -395,7 +374,7 @@ func abrir_banco_dados() (*repostasdb, error) {
 	}
 
 	fmt.Println("Banco de dados pronto para uso.")
-	return &repostasdb{DB: db}, nil
+	return &dto.Repostasdb{DB: db}, nil
 }
 
 func main() {
